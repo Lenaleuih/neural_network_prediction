@@ -1,0 +1,88 @@
+---
+title: "Neural Networks"
+author: "LenaKafka"
+date: "1/28/2018"
+output: html_document
+---
+
+## Part I - Introduction to Using Neural Nets
+
+In the attached data sets attention1.csv and attention2.csv, you will find data that describe features assocaited with webcam images of 100 students' faces as they particpate in an online discussion. The variables are:
+
+eyes - student has their eyes open (1 = yes, 0 = no)
+face.forward - student is facing the camera (1 = yes, 0 = no)
+chin.up - student's chin is raised above 45 degrees (1 = yes, 0 = no)
+attention - whether the student was paying attention when asked (1 = yes, 0 = no)
+
+We will use the webcam data to build a neural net to predict whether or not a student is attending.
+
+First install and load the neuralnet package
+```{r}
+install.packages("neuralnet")
+library(neuralnet)
+```
+
+Now upload your data
+```{r}
+D1 <-read.csv("attention1.csv")
+  
+D2 <-read.csv("attention2.csv")
+```
+
+Now you can build a neural net that predicts attention based on webcam images. The command "neuralnet" sets up the model. It is composed of four basic arguments:
+
+- A formula that describes the inputs and outputs of the neural net (attention is our output)
+- The data frame that the model will use
+- How many hidden layers are in our neural net
+- A threshold that tells the model when to stop adjusting weights to find a better fit. If error does not change more than the threshold from one iteration to the next, the algorithm will stop (We will use 0.01, so if prediction error does not change by more than 1% from one iteration to the next the algorithm will halt)
+
+```{r}
+net <- neuralnet(attention ~ eyes + face.forward + chin.up, D1, hidden = 1, threshold = 0.01)
+
+plot(net)
+```
+
+The plot shows you the layers of your newtork as black nodes and edges with the calculated weights on each edge. The blue nodes and edges are called bias terms. The bias term anchors the activation function, the weights change the shape of the activation function while the bias term changes the overall position of the activation function - if you have used linear regressionthe bias term is like the intercept of the regression equation, it shifts the trend line up and down the y axis, while the other parameters change the angle of the line. The plot also reports the final error rate and the number of iterations ("steps") that it took to reach these weights.
+
+
+```{r}
+net2 <- neuralnet(attention ~ eyes + face.forward + chin.up, D1, hidden = 2, threshold = 0.01)
+
+plot(net2)
+
+#the error rate decreases in the second model, but it is not necessirily better because there is a potential problem of overfitting. But let's use the second one 
+```
+
+
+Chose one preferred neural net to predict the second data set. 
+
+```{r}
+D3 <-D2[,1:3]
+
+```
+
+create predictions using our neural net
+```{r}
+net.prediction <- neuralnet::compute(net, D3)
+
+#You can access the predictions from your model as "net.prediction$net.result". Predictions will be numeric estimates from 1 or 0, convert these into exact predictions of 1 and 0 and then determine the accuracy of your neural net on this new data.
+pred1<-as.data.frame(net.prediction$net.result)
+pred2<-as.data.frame(ifelse(pred1>0.5,1,0))
+D4<-cbind(D2,pred2)
+
+```
+
+## analysis
+
+1. How accurate is our neural net? 
+```{r}
+#we can use confusion matrix to evaluate
+library(caret) 
+confusionMatrix<-confusionMatrix(factor(pred2$V1), factor(D2$attention))
+#according to the table the accuracy is 0.94, which is quite good
+```
+
+
+2. explanations
+#the model originated from neural network actually has much predicative but little explanatory power. We may only explain retrospectively by saying that the more positive indicators you have, you are more likely to pay attention
+
